@@ -1,9 +1,29 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 
-// Define the family member type
+// Constants
+const CHALDEAN_CHART = {
+  'a': 1, 'i': 1, 'j': 1, 'q': 1, 'y': 1,
+  'b': 2, 'k': 2, 'r': 2,
+  'c': 3, 'g': 3, 'l': 3, 's': 3,
+  'd': 4, 'm': 4, 't': 4,
+  'e': 5, 'h': 5, 'n': 5, 'x': 5,
+  'u': 6, 'v': 6, 'w': 6,
+  'o': 7, 'z': 7,
+  'f': 8, 'p': 8
+} as const;
+
+const CHINESE_ZODIAC_SIGNS = [
+  'Monkey', 'Rooster', 'Dog', 'Pig', 'Rat', 'Ox', 
+  'Tiger', 'Rabbit', 'Dragon', 'Snake', 'Horse', 'Sheep/Goat'
+] as const;
+
+const MASTER_NUMBERS = [11, 22, 33] as const;
+const SPECIAL_CHALDEAN_NUMBERS = [10, 11, 12, 13, 14, 15, 16, 19, 22, 33] as const;
+
+// Types
 interface FamilyMember {
   id: string;
   name: string;
@@ -17,23 +37,194 @@ interface FamilyMember {
   chineseZodiac: string;
 }
 
+interface NewMemberForm {
+  name: string;
+  birthdate: string;
+  parentId: string;
+  spouseId: string;
+}
+
+type TabType = 'view' | 'add' | 'edit';
+
+// Utility functions
+const isValidDate = (dateString: string): boolean => {
+  return /^\d{2}\/\d{2}\/\d{4}$/.test(dateString);
+};
+
+const parseDate = (dateString: string) => {
+  if (!isValidDate(dateString)) return null;
+  const [month, day, year] = dateString.split('/').map(Number);
+  return { month, day, year };
+};
+
+const reduceToSingleDigit = (num: number, allowMasterNumbers = true): number => {
+  while (num > 9) {
+    if (allowMasterNumbers && MASTER_NUMBERS.includes(num as any)) {
+      break;
+    }
+    num = num.toString().split('').reduce((sum, digit) => sum + parseInt(digit, 10), 0);
+  }
+  return num;
+};
+
+// Calculation functions
+const calculateLifePath = (birthdate: string): number => {
+  const date = parseDate(birthdate);
+  if (!date) return 0;
+  
+  const { month, day, year } = date;
+  
+  const monthReduced = reduceToSingleDigit(month);
+  const dayReduced = reduceToSingleDigit(day);
+  const yearReduced = reduceToSingleDigit(year);
+  
+  const lifePath = monthReduced + dayReduced + yearReduced;
+  return reduceToSingleDigit(lifePath);
+};
+
+const calculateChaldeanNumber = (name: string): number => {
+  if (!name.trim()) return 0;
+  
+  const nameSum = name.toLowerCase()
+    .split('')
+    .filter(char => /[a-z]/.test(char))
+    .reduce((sum, char) => sum + (CHALDEAN_CHART[char as keyof typeof CHALDEAN_CHART] || 0), 0);
+  
+  if (SPECIAL_CHALDEAN_NUMBERS.includes(nameSum as any)) {
+    return nameSum;
+  }
+  
+  return reduceToSingleDigit(nameSum, false);
+};
+
+const getWesternZodiac = (birthdate: string): string => {
+  const date = parseDate(birthdate);
+  if (!date) return '';
+  
+  const { month, day } = date;
+  
+  const zodiacRanges = [
+    { sign: 'Capricorn', start: [12, 22], end: [1, 19] },
+    { sign: 'Aquarius', start: [1, 20], end: [2, 18] },
+    { sign: 'Pisces', start: [2, 19], end: [3, 20] },
+    { sign: 'Aries', start: [3, 21], end: [4, 19] },
+    { sign: 'Taurus', start: [4, 20], end: [5, 20] },
+    { sign: 'Gemini', start: [5, 21], end: [6, 20] },
+    { sign: 'Cancer', start: [6, 21], end: [7, 22] },
+    { sign: 'Leo', start: [7, 23], end: [8, 22] },
+    { sign: 'Virgo', start: [8, 23], end: [9, 22] },
+    { sign: 'Libra', start: [9, 23], end: [10, 22] },
+    { sign: 'Scorpio', start: [10, 23], end: [11, 21] },
+    { sign: 'Sagittarius', start: [11, 22], end: [12, 21] }
+  ];
+  
+  for (const { sign, start, end } of zodiacRanges) {
+    if (sign === 'Capricorn') {
+      if ((month === 12 && day >= 22) || (month === 1 && day <= 19)) {
+        return sign;
+      }
+    } else {
+      const [startMonth, startDay] = start;
+      const [endMonth, endDay] = end;
+      if ((month === startMonth && day >= startDay) || (month === endMonth && day <= endDay)) {
+        return sign;
+      }
+    }
+  }
+  
+  return 'Pisces'; // fallback
+};
+
+const getChineseZodiac = (birthdate: string): string => {
+  const date = parseDate(birthdate);
+  if (!date) return '';
+  
+  const { year } = date;
+  return CHINESE_ZODIAC_SIGNS[(year - 4) % 12];
+};
+
+// Custom hooks
+const useLocalStorage = <T>(key: string, initialValue: T) => {
+  const [storedValue, setStoredValue] = useState<T>(initialValue);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    try {
+      const item = window.localStorage.getItem(key);
+      if (item) {
+        setStoredValue(JSON.parse(item));
+      }
+    } catch (error) {
+      console.error(`Error loading ${key} from localStorage:`, error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [key]);
+
+  const setValue = useCallback((value: T | ((val: T) => T)) => {
+    try {
+      const valueToStore = value instanceof Function ? value(storedValue) : value;
+      setStoredValue(valueToStore);
+      window.localStorage.setItem(key, JSON.stringify(valueToStore));
+    } catch (error) {
+      console.error(`Error saving ${key} to localStorage:`, error);
+    }
+  }, [key, storedValue]);
+
+  return [storedValue, setValue, isLoading] as const;
+};
+
+// Components
+const FamilyMemberCard = ({ member }: { member: FamilyMember }) => (
+  <div className="family-member-card">
+    <h4 className="text-lg font-semibold">{member.name}</h4>
+    <div className="flex flex-wrap gap-1 mt-2">
+      <span className={`tag tag-life-path-${member.lifePath}`}>
+        Life Path {member.lifePath}
+      </span>
+      <span className={`tag tag-chaldean-${member.chaldeanNumber}`}>
+        Chaldean {member.chaldeanNumber}
+      </span>
+    </div>
+    <div className="mt-2 text-sm">
+      <span className="tag">{member.westernZodiac}</span>
+      <span className="tag ml-1">{member.chineseZodiac}</span>
+    </div>
+    <p className="mt-2 text-xs opacity-70">{member.birthdate}</p>
+  </div>
+);
+
+const TabButton = ({ 
+  isActive, 
+  onClick, 
+  children 
+}: { 
+  isActive: boolean; 
+  onClick: () => void; 
+  children: React.ReactNode; 
+}) => (
+  <button 
+    className={`tab-button ${isActive ? 'active' : ''}`}
+    onClick={onClick}
+  >
+    {children}
+  </button>
+);
+
+// Main component
 export default function FamilyTreePage() {
-  const [activeTab, setActiveTab] = useState('view');
-  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
-  const [newMember, setNewMember] = useState({
+  const [activeTab, setActiveTab] = useState<TabType>('view');
+  const [familyMembers, setFamilyMembers, isLoading] = useLocalStorage<FamilyMember[]>('familyTreeData', []);
+  const [newMember, setNewMember] = useState<NewMemberForm>({
     name: '',
     birthdate: '',
     parentId: 'none',
     spouseId: 'none'
   });
 
-  // Initialize with sample data or load from localStorage
+  // Initialize with sample data if no data exists
   useEffect(() => {
-    const savedData = localStorage.getItem('familyTreeData');
-    if (savedData) {
-      setFamilyMembers(JSON.parse(savedData));
-    } else {
-      // Sample data
+    if (!isLoading && familyMembers.length === 0) {
       const sampleData: FamilyMember[] = [
         {
           id: '1',
@@ -42,10 +233,10 @@ export default function FamilyTreePage() {
           parentId: null,
           spouseId: null,
           children: [],
-          lifePath: 7,
-          chaldeanNumber: 5,
-          westernZodiac: 'Gemini',
-          chineseZodiac: 'Dragon'
+          lifePath: calculateLifePath('06/02/1988'),
+          chaldeanNumber: calculateChaldeanNumber('Tyler'),
+          westernZodiac: getWesternZodiac('06/02/1988'),
+          chineseZodiac: getChineseZodiac('06/02/1988')
         },
         {
           id: '2',
@@ -54,10 +245,10 @@ export default function FamilyTreePage() {
           parentId: null,
           spouseId: null,
           children: [],
-          lifePath: 8,
-          chaldeanNumber: 6,
-          westernZodiac: 'Cancer',
-          chineseZodiac: 'Tiger'
+          lifePath: calculateLifePath('06/23/1986'),
+          chaldeanNumber: calculateChaldeanNumber('Bri'),
+          westernZodiac: getWesternZodiac('06/23/1986'),
+          chineseZodiac: getChineseZodiac('06/23/1986')
         },
         {
           id: '3',
@@ -66,10 +257,10 @@ export default function FamilyTreePage() {
           parentId: null,
           spouseId: null,
           children: [],
-          lifePath: 6,
-          chaldeanNumber: 4,
-          westernZodiac: 'Leo',
-          chineseZodiac: 'Monkey'
+          lifePath: calculateLifePath('08/16/1980'),
+          chaldeanNumber: calculateChaldeanNumber('Val'),
+          westernZodiac: getWesternZodiac('08/16/1980'),
+          chineseZodiac: getChineseZodiac('08/16/1980')
         },
         {
           id: '4',
@@ -78,10 +269,10 @@ export default function FamilyTreePage() {
           parentId: null,
           spouseId: null,
           children: [],
-          lifePath: 7,
-          chaldeanNumber: 5,
-          westernZodiac: 'Pisces',
-          chineseZodiac: 'Tiger'
+          lifePath: calculateLifePath('03/13/1962'),
+          chaldeanNumber: calculateChaldeanNumber('Mom'),
+          westernZodiac: getWesternZodiac('03/13/1962'),
+          chineseZodiac: getChineseZodiac('03/13/1962')
         },
         {
           id: '5',
@@ -90,198 +281,112 @@ export default function FamilyTreePage() {
           parentId: null,
           spouseId: null,
           children: [],
-          lifePath: 8,
-          chaldeanNumber: 7,
-          westernZodiac: 'Capricorn',
-          chineseZodiac: 'Dragon'
+          lifePath: calculateLifePath('01/05/2000'),
+          chaldeanNumber: calculateChaldeanNumber('John'),
+          westernZodiac: getWesternZodiac('01/05/2000'),
+          chineseZodiac: getChineseZodiac('01/05/2000')
         }
       ];
       setFamilyMembers(sampleData);
-      localStorage.setItem('familyTreeData', JSON.stringify(sampleData));
     }
-  }, []);
+  }, [isLoading, familyMembers.length, setFamilyMembers]);
 
-  // Save to localStorage whenever family members change
-  useEffect(() => {
-    if (familyMembers.length > 0) {
-      localStorage.setItem('familyTreeData', JSON.stringify(familyMembers));
-    }
+  // Memoized calculations
+  const familyMemberMap = useMemo(() => {
+    return new Map(familyMembers.map(member => [member.id, member]));
   }, [familyMembers]);
 
-  // Calculate Life Path Number (Pythagorean)
-  const calculateLifePath = (birthdate: string): number => {
-    if (!birthdate || !birthdate.match(/^\d{2}\/\d{2}\/\d{4}$/)) return 0;
-    
-    const [month, day, year] = birthdate.split('/').map(part => parseInt(part, 10));
-    
-    // Reduce month to single digit
-    let monthNum = month;
-    while (monthNum > 9 && monthNum !== 11 && monthNum !== 22 && monthNum !== 33) {
-      monthNum = monthNum.toString().split('').reduce((sum, digit) => sum + parseInt(digit, 10), 0);
-    }
-    
-    // Reduce day to single digit
-    let dayNum = day;
-    while (dayNum > 9 && dayNum !== 11 && dayNum !== 22 && dayNum !== 33) {
-      dayNum = dayNum.toString().split('').reduce((sum, digit) => sum + parseInt(digit, 10), 0);
-    }
-    
-    // Reduce year to single digit
-    let yearNum = year;
-    while (yearNum > 9 && yearNum !== 11 && yearNum !== 22 && yearNum !== 33) {
-      yearNum = yearNum.toString().split('').reduce((sum, digit) => sum + parseInt(digit, 10), 0);
-    }
-    
-    // Add all reduced numbers
-    let lifePath = monthNum + dayNum + yearNum;
-    
-    // Final reduction to single digit or master number
-    while (lifePath > 9 && lifePath !== 11 && lifePath !== 22 && lifePath !== 33) {
-      lifePath = lifePath.toString().split('').reduce((sum, digit) => sum + parseInt(digit, 10), 0);
-    }
-    
-    return lifePath;
-  };
+  const rootMembers = useMemo(() => {
+    return familyMembers.filter(member => !member.parentId);
+  }, [familyMembers]);
 
-  // Calculate Chaldean Number
-  const calculateChaldeanNumber = (name: string): number => {
-    if (!name) return 0;
-    
-    // Chaldean number chart
-    const chaldeanChart: {[key: string]: number} = {
-      'a': 1, 'i': 1, 'j': 1, 'q': 1, 'y': 1,
-      'b': 2, 'k': 2, 'r': 2,
-      'c': 3, 'g': 3, 'l': 3, 's': 3,
-      'd': 4, 'm': 4, 't': 4,
-      'e': 5, 'h': 5, 'n': 5, 'x': 5,
-      'u': 6, 'v': 6, 'w': 6,
-      'o': 7, 'z': 7,
-      'f': 8, 'p': 8
-    };
-    
-    // Calculate the sum of all letters
-    const nameSum = name.toLowerCase().split('')
-      .filter(char => /[a-z]/.test(char))
-      .reduce((sum, char) => sum + (chaldeanChart[char] || 0), 0);
-    
-    // In Chaldean numerology, compound numbers have special meanings
-    // We'll return the compound number if it's significant, otherwise reduce to single digit
-    if ([10, 11, 12, 13, 14, 15, 16, 19, 22, 33].includes(nameSum)) {
-      return nameSum;
+  // Event handlers
+  const handleAddMember = useCallback(() => {
+    if (!newMember.name.trim() || !newMember.birthdate.trim()) {
+      alert('Please fill in both name and birthdate fields.');
+      return;
     }
-    
-    // Reduce to single digit
-    let result = nameSum;
-    while (result > 9) {
-      result = result.toString().split('').reduce((sum, digit) => sum + parseInt(digit, 10), 0);
+
+    if (!isValidDate(newMember.birthdate)) {
+      alert('Please enter a valid date in MM/DD/YYYY format.');
+      return;
     }
-    
-    return result;
-  };
-
-  // Determine Western Zodiac sign
-  const getWesternZodiac = (birthdate: string): string => {
-    if (!birthdate || !birthdate.match(/^\d{2}\/\d{2}\/\d{4}$/)) return '';
-    
-    const [month, day] = birthdate.split('/').map(part => parseInt(part, 10));
-    
-    if ((month === 3 && day >= 21) || (month === 4 && day <= 19)) return 'Aries';
-    if ((month === 4 && day >= 20) || (month === 5 && day <= 20)) return 'Taurus';
-    if ((month === 5 && day >= 21) || (month === 6 && day <= 20)) return 'Gemini';
-    if ((month === 6 && day >= 21) || (month === 7 && day <= 22)) return 'Cancer';
-    if ((month === 7 && day >= 23) || (month === 8 && day <= 22)) return 'Leo';
-    if ((month === 8 && day >= 23) || (month === 9 && day <= 22)) return 'Virgo';
-    if ((month === 9 && day >= 23) || (month === 10 && day <= 22)) return 'Libra';
-    if ((month === 10 && day >= 23) || (month === 11 && day <= 21)) return 'Scorpio';
-    if ((month === 11 && day >= 22) || (month === 12 && day <= 21)) return 'Sagittarius';
-    if ((month === 12 && day >= 22) || (month === 1 && day <= 19)) return 'Capricorn';
-    if ((month === 1 && day >= 20) || (month === 2 && day <= 18)) return 'Aquarius';
-    return 'Pisces';
-  };
-
-  // Determine Chinese Zodiac sign
-  const getChineseZodiac = (birthdate: string): string => {
-    if (!birthdate || !birthdate.match(/^\d{2}\/\d{2}\/\d{4}$/)) return '';
-    
-    const year = parseInt(birthdate.split('/')[2], 10);
-    const zodiacSigns = ['Monkey', 'Rooster', 'Dog', 'Pig', 'Rat', 'Ox', 'Tiger', 'Rabbit', 'Dragon', 'Snake', 'Horse', 'Sheep/Goat'];
-    
-    return zodiacSigns[(year - 4) % 12];
-  };
-
-  // Handle adding a new family member
-  const handleAddMember = () => {
-    if (!newMember.name || !newMember.birthdate) return;
     
     const id = Date.now().toString();
-    const lifePath = calculateLifePath(newMember.birthdate);
-    const chaldeanNumber = calculateChaldeanNumber(newMember.name);
-    const westernZodiac = getWesternZodiac(newMember.birthdate);
-    const chineseZodiac = getChineseZodiac(newMember.birthdate);
-    
     const member: FamilyMember = {
       id,
-      name: newMember.name,
+      name: newMember.name.trim(),
       birthdate: newMember.birthdate,
       parentId: newMember.parentId === 'none' ? null : newMember.parentId,
       spouseId: newMember.spouseId === 'none' ? null : newMember.spouseId,
       children: [],
-      lifePath,
-      chaldeanNumber,
-      westernZodiac,
-      chineseZodiac
+      lifePath: calculateLifePath(newMember.birthdate),
+      chaldeanNumber: calculateChaldeanNumber(newMember.name),
+      westernZodiac: getWesternZodiac(newMember.birthdate),
+      chineseZodiac: getChineseZodiac(newMember.birthdate)
     };
     
-    // Update parent's children array if parent is selected
-    const updatedMembers = [...familyMembers];
-    if (member.parentId) {
-      const parentIndex = updatedMembers.findIndex(m => m.id === member.parentId);
-      if (parentIndex !== -1) {
-        updatedMembers[parentIndex].children.push(id);
+    setFamilyMembers(prevMembers => {
+      const updatedMembers = [...prevMembers];
+      
+      // Update parent's children array
+      if (member.parentId) {
+        const parentIndex = updatedMembers.findIndex(m => m.id === member.parentId);
+        if (parentIndex !== -1) {
+          updatedMembers[parentIndex] = {
+            ...updatedMembers[parentIndex],
+            children: [...updatedMembers[parentIndex].children, id]
+          };
+        }
       }
-    }
-    
-    // Update spouse relationship if spouse is selected
-    if (member.spouseId) {
-      const spouseIndex = updatedMembers.findIndex(m => m.id === member.spouseId);
-      if (spouseIndex !== -1) {
-        updatedMembers[spouseIndex].spouseId = id;
+      
+      // Update spouse relationship
+      if (member.spouseId) {
+        const spouseIndex = updatedMembers.findIndex(m => m.id === member.spouseId);
+        if (spouseIndex !== -1) {
+          updatedMembers[spouseIndex] = {
+            ...updatedMembers[spouseIndex],
+            spouseId: id
+          };
+        }
       }
-    }
+      
+      return [...updatedMembers, member];
+    });
     
-    setFamilyMembers([...updatedMembers, member]);
+    // Reset form
     setNewMember({
       name: '',
       birthdate: '',
       parentId: 'none',
       spouseId: 'none'
     });
-  };
+  }, [newMember, setFamilyMembers]);
 
-  // Handle input changes for new member form
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setNewMember({
-      ...newMember,
+    setNewMember(prev => ({
+      ...prev,
       [name]: value
-    });
-  };
+    }));
+  }, []);
 
-  // Export data as JSON
-  const handleExportData = () => {
-    const dataStr = JSON.stringify(familyMembers, null, 2);
-    const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(dataStr)}`;
-    
-    const exportFileDefaultName = 'family_tree_data.json';
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
-  };
+  const handleExportData = useCallback(() => {
+    try {
+      const dataStr = JSON.stringify(familyMembers, null, 2);
+      const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(dataStr)}`;
+      
+      const linkElement = document.createElement('a');
+      linkElement.setAttribute('href', dataUri);
+      linkElement.setAttribute('download', `family_tree_data_${new Date().toISOString().split('T')[0]}.json`);
+      linkElement.click();
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      alert('Error exporting data. Please try again.');
+    }
+  }, [familyMembers]);
 
-  // Import data from JSON file
-  const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportData = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
@@ -289,20 +394,30 @@ export default function FamilyTreePage() {
     reader.onload = (event) => {
       try {
         const importedData = JSON.parse(event.target?.result as string);
-        if (Array.isArray(importedData)) {
+        if (Array.isArray(importedData) && importedData.every(item => 
+          typeof item === 'object' && 
+          item.id && 
+          item.name && 
+          item.birthdate
+        )) {
           setFamilyMembers(importedData);
-          localStorage.setItem('familyTreeData', JSON.stringify(importedData));
+          alert('Data imported successfully!');
+        } else {
+          throw new Error('Invalid data structure');
         }
       } catch (error) {
         console.error('Error importing data:', error);
-        alert('Invalid data format. Please upload a valid JSON file.');
+        alert('Invalid data format. Please upload a valid JSON file exported from this application.');
       }
     };
     reader.readAsText(file);
-  };
+    
+    // Reset the input
+    e.target.value = '';
+  }, [setFamilyMembers]);
 
   // Render family tree recursively
-  const renderFamilyTree = (members: FamilyMember[], parentId: string | null = null, level = 0) => {
+  const renderFamilyTree = useCallback((members: FamilyMember[], parentId: string | null = null, level = 0): React.ReactNode => {
     const children = members.filter(member => member.parentId === parentId);
     
     if (children.length === 0) return null;
@@ -311,25 +426,23 @@ export default function FamilyTreePage() {
       <div className="family-tree-level" style={{ marginLeft: `${level * 20}px` }}>
         {children.map(child => (
           <div key={child.id} className="flex flex-col items-center">
-            <div className="family-member-card">
-              <h3 className="text-lg font-semibold">{child.name}</h3>
-              <div className="flex flex-wrap gap-1 mt-2">
-                <span className={`tag tag-life-path-${child.lifePath}`}>Life Path {child.lifePath}</span>
-                <span className={`tag tag-chaldean-${child.chaldeanNumber}`}>Chaldean {child.chaldeanNumber}</span>
-              </div>
-              <div className="mt-2 text-sm">
-                <span className="tag">{child.westernZodiac}</span>
-                <span className="tag ml-1">{child.chineseZodiac}</span>
-              </div>
-              <p className="mt-2 text-xs opacity-70">{child.birthdate}</p>
-            </div>
-            
+            <FamilyMemberCard member={child} />
             {renderFamilyTree(members, child.id, level + 1)}
           </div>
         ))}
       </div>
     );
-  };
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="max-w-6xl mx-auto">
+        <div className="flex justify-center items-center h-64">
+          <p>Loading family tree...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -338,31 +451,19 @@ export default function FamilyTreePage() {
       </h1>
 
       <div className="mb-8 flex flex-wrap gap-2">
-        <button 
-          className={`tab-button ${activeTab === 'view' ? 'active' : ''}`}
-          onClick={() => setActiveTab('view')}
-        >
+        <TabButton isActive={activeTab === 'view'} onClick={() => setActiveTab('view')}>
           View Family Tree
-        </button>
-        <button 
-          className={`tab-button ${activeTab === 'add' ? 'active' : ''}`}
-          onClick={() => setActiveTab('add')}
-        >
+        </TabButton>
+        <TabButton isActive={activeTab === 'add'} onClick={() => setActiveTab('add')}>
           Add Family Member
-        </button>
-        <button 
-          className={`tab-button ${activeTab === 'edit' ? 'active' : ''}`}
-          onClick={() => setActiveTab('edit')}
-        >
+        </TabButton>
+        <TabButton isActive={activeTab === 'edit'} onClick={() => setActiveTab('edit')}>
           Edit Relationships
-        </button>
+        </TabButton>
       </div>
 
       <div className="flex gap-2 mb-8">
-        <button 
-          className="btn"
-          onClick={handleExportData}
-        >
+        <button className="btn" onClick={handleExportData}>
           Export Data
         </button>
         <label className="btn cursor-pointer">
@@ -389,21 +490,10 @@ export default function FamilyTreePage() {
           </div>
           
           <div className="mt-8">
-            <h3 className="text-xl font-semibold mb-4">All Family Members</h3>
+            <h3 className="text-xl font-semibold mb-4">All Family Members ({familyMembers.length})</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {familyMembers.map(member => (
-                <div key={member.id} className="family-member-card">
-                  <h4 className="text-lg font-semibold">{member.name}</h4>
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    <span className={`tag tag-life-path-${member.lifePath}`}>Life Path {member.lifePath}</span>
-                    <span className={`tag tag-chaldean-${member.chaldeanNumber}`}>Chaldean {member.chaldeanNumber}</span>
-                  </div>
-                  <div className="mt-2 text-sm">
-                    <span className="tag">{member.westernZodiac}</span>
-                    <span className="tag ml-1">{member.chineseZodiac}</span>
-                  </div>
-                  <p className="mt-2 text-xs opacity-70">{member.birthdate}</p>
-                </div>
+                <FamilyMemberCard key={member.id} member={member} />
               ))}
             </div>
           </div>
@@ -416,18 +506,19 @@ export default function FamilyTreePage() {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block mb-2">Name:</label>
+              <label className="block mb-2">Name: *</label>
               <input
                 type="text"
                 name="name"
                 value={newMember.name}
                 onChange={handleInputChange}
                 className="w-full p-2 bg-white/10 border border-white/20 rounded-md"
+                placeholder="Enter full name"
               />
             </div>
             
             <div>
-              <label className="block mb-2">Birthdate (MM/DD/YYYY):</label>
+              <label className="block mb-2">Birthdate (MM/DD/YYYY): *</label>
               <input
                 type="text"
                 name="birthdate"
@@ -448,7 +539,9 @@ export default function FamilyTreePage() {
               >
                 <option value="none">None</option>
                 {familyMembers.map(member => (
-                  <option key={member.id} value={member.id}>{member.name}</option>
+                  <option key={member.id} value={member.id}>
+                    {member.name}
+                  </option>
                 ))}
               </select>
             </div>
@@ -462,9 +555,13 @@ export default function FamilyTreePage() {
                 className="w-full p-2 bg-white/10 border border-white/20 rounded-md"
               >
                 <option value="none">None</option>
-                {familyMembers.map(member => (
-                  <option key={member.id} value={member.id}>{member.name}</option>
-                ))}
+                {familyMembers
+                  .filter(member => member.id !== newMember.parentId) // Can't marry parent
+                  .map(member => (
+                    <option key={member.id} value={member.id}>
+                      {member.name}
+                    </option>
+                  ))}
               </select>
             </div>
           </div>
@@ -511,7 +608,7 @@ export default function FamilyTreePage() {
                     <h5 className="font-medium mb-2">Parent:</h5>
                     <p>
                       {member.parentId 
-                        ? familyMembers.find(m => m.id === member.parentId)?.name || 'Unknown'
+                        ? familyMemberMap.get(member.parentId)?.name || 'Unknown'
                         : 'None'}
                     </p>
                   </div>
@@ -520,7 +617,7 @@ export default function FamilyTreePage() {
                     <h5 className="font-medium mb-2">Spouse:</h5>
                     <p>
                       {member.spouseId 
-                        ? familyMembers.find(m => m.id === member.spouseId)?.name || 'Unknown'
+                        ? familyMemberMap.get(member.spouseId)?.name || 'Unknown'
                         : 'None'}
                     </p>
                   </div>
@@ -531,7 +628,7 @@ export default function FamilyTreePage() {
                       <ul className="list-disc pl-6">
                         {member.children.map(childId => (
                           <li key={childId}>
-                            {familyMembers.find(m => m.id === childId)?.name || 'Unknown'}
+                            {familyMemberMap.get(childId)?.name || 'Unknown'}
                           </li>
                         ))}
                       </ul>
