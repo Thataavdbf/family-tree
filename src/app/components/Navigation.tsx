@@ -1,8 +1,19 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+
+const links = [
+  { href: '/', label: 'Home' },
+  { href: '/overview', label: 'Overview' },
+  { href: '/profiles', label: 'Profiles' },
+  { href: '/systems', label: 'Systems' },
+  { href: '/chaldean', label: 'Chaldean' },
+  { href: '/family-tree', label: 'Family Tree' },
+];
 
 export default function Navigation() {
+  const pathname = usePathname();
   return (
     <nav className="bg-gradient-to-r from-purple-900/50 to-indigo-900/50 backdrop-blur-sm sticky top-0 z-50 mb-8">
       <div className="max-w-6xl mx-auto px-4 py-3">
@@ -14,12 +25,16 @@ export default function Navigation() {
           </Link>
           
           <div className="flex space-x-1 md:space-x-4">
-            <Link href="/" className="nav-link">Home</Link>
-            <Link href="/overview" className="nav-link">Overview</Link>
-            <Link href="/profiles" className="nav-link">Profiles</Link>
-            <Link href="/systems" className="nav-link">Systems</Link>
-            <Link href="/chaldean" className="nav-link">Chaldean</Link>
-            <Link href="/family-tree" className="nav-link">Family Tree</Link>
+            {links.map(link => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`nav-link${pathname === link.href ? ' nav-link-active' : ''}`}
+                aria-current={pathname === link.href ? 'page' : undefined}
+              >
+                {link.label}
+              </Link>
+            ))}
           </div>
         </div>
       </div>
