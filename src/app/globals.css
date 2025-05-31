@@ -33,21 +33,44 @@
   --background-end-rgb: 10, 10, 20;
 }
 
+
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom right,
-      rgb(var(--background-start-rgb)),
-      rgb(var(--background-end-rgb))
-    )
-    fixed;
+  color: #fff;
+  background: #000 !important;
+}
+
+/* Big letters (headings) red, small letters white */
+h1, h2, h3, h4, h5, h6, .section-title {
+  color: #ff2222 !important;
+}
+
+p, li, span, label, input, button, td, th, .text-sm, .text-xs, .text-md, .text-base, .text-white, .opacity-80, .opacity-70, .opacity-90 {
+  color: #fff !important;
+}
+
+/* Visited page highlight: bright purple for nav links */
+.nav-link.visited, .nav-link:visited, .visited-page {
+  background-color: #c800ff !important;
+  color: #fff !important;
+}
+
+/* For section cards, keep background dark */
+.section-card {
+  background-color: rgba(30, 0, 40, 0.7) !important;
+  border: 1px solid #c800ff !important;
 }
 
 .section-title {
   font-size: 2.5rem;
   font-weight: 700;
   margin-bottom: 1.5rem;
-  text-align: center;
+  text-align: center !important;
+  width: 100%;
+  display: block;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  text-align: center !important;
 }
 
 .section-card {

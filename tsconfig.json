@@ -2,7 +2,8 @@
   "compilerOptions": {
     "target": "ES2017",
     "types": [
-      "@cloudflare/workers-types/2023-07-01"
+      "@cloudflare/workers-types/2023-07-01",
+      "jest"
     ],
     "lib": [
       "dom",
@@ -29,7 +30,7 @@
       "@/*": [
         "./src/*"
       ]
-    },
+    }
   },
   "include": [
     "next-env.d.ts",

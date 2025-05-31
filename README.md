@@ -1,11 +1,11 @@
-# Family Tree Numerology App
+# FAMOLOGY
 
-This is a Next.js-based web application designed to calculate and display numerology insights based on family trees.
+This is a Next.js-based web application designed to calculate and display numerology insights for families, using multiple numerology systems.
 
 ## Features
 - Input family members and birthdates
 - Calculate life path numbers
-- Visualize relationships through numerology
+- Visualize relationships and systems through numerology
 - Clean and simple interface
 
 ## Getting Started
@@ -25,7 +25,7 @@ CSS
 
 Future Improvements
 
-Add name-based numerology
+Add multi-system numerology (Chaldean, Pythagorean, Vedic, etc.)
 Save family trees to a database
 User authentication
 

@@ -28,6 +28,8 @@ export type TabKey =
   | 'angel-numbers'
   | 'personal-year';
 
+import { useRouter } from 'next/navigation';
+
 function ChaldeanPage() {
   // --- Tab Data ---
   // Dynamic panels for code-split tabs
@@ -288,93 +290,12 @@ function ChaldeanPage() {
     return require('./NumerologySummaryChart').default;
   }, []);
 
-  return (
-    <UserInfoProvider>
-      <PartnerInfoProvider>
-        <UserInfoForm />
-        <div className="max-w-6xl mx-auto">
-          <h1 className="section-title bg-clip-text text-transparent bg-gradient-to-r from-purple-300 to-pink-300">
-            Chaldean Numerology
-          </h1>
-
-          {/* Summary Chart always visible at the top */}
-          <NumerologySummaryChart />
-
-          {/* Partner/Friend Info, Compatibility, Name Change Analysis, Cycle Forecast, and Interactive Calculator */}
-          <div className="my-6 space-y-10">
-            <section aria-labelledby="partner-info-heading">
-              <h2 id="partner-info-heading" className="text-xl font-bold mb-2">Partner/Friend Compatibility</h2>
-              <PartnerInfoForm />
-              <CompatibilityChart />
-            </section>
-            <Separator className="my-6" />
-            <section aria-labelledby="name-change-heading">
-              <h2 id="name-change-heading" className="text-xl font-bold mb-2">Name Change Analysis</h2>
-              <NameChangeAnalysis />
-            </section>
-            <Separator className="my-6" />
-            <section aria-labelledby="cycle-forecast-heading">
-              <h2 id="cycle-forecast-heading" className="text-xl font-bold mb-2">Cycle Forecast</h2>
-              <CycleForecast />
-            </section>
-            <Separator className="my-6" />
-            <section aria-labelledby="interactive-calculator-heading">
-              <h2 id="interactive-calculator-heading" className="text-xl font-bold mb-2">Interactive Calculator</h2>
-              <InteractiveCalculator />
-            </section>
-          </div>
-
-          <div
-            className="mb-8 flex flex-wrap gap-2 items-center"
-            role="tablist"
-            aria-orientation="horizontal"
-            aria-label="Chaldean Numerology Tabs"
-          >
-            {/* Reset Tabs Button */}
-            <button
-              onClick={handleResetTabs}
-              className="ml-4 px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 text-sm border border-gray-300"
-              aria-label="Reset tabs to default order"
-              type="button"
-            >
-              Reset Tabs
-            </button>
-          </div>
-
-          {/* Render only the active tab panel as a memoized component, with fade-in animation */}
-          {visibleTabs.map((tabKey: TabKey) => {
-            if (activeTab !== tabKey) return null;
-            const tab = TAB_LIST.find((t) => t.key === tabKey)!;
-            const Panel = tab.Panel;
-            return (
-              <div
-                key={tab.key}
-                style={{ animation: 'fadein 0.4s' }}
-              >
-                <Panel
-                  id={`tabpanel-${tab.key}`}
-                  ariaLabelledBy={`tab-${tab.key}`}
-                  hidden={activeTab !== tab.key}
-                  ariaHidden={activeTab !== tab.key}
-                  tabIndex={0}
-                  className="section-card"
-                  ref={getPanelRef(tab.key)}
-                />
-              </div>
-            );
-          })}
-
-          {/* Simple fade-in animation for tab panels */}
-          <style>{`
-            @keyframes fadein {
-              from { opacity: 0; }
-              to { opacity: 1; }
-            }
-          `}</style>
-        </div>
-      </PartnerInfoProvider>
-    </UserInfoProvider>
-  );
+  // Redirect to /systems/chaldean for new structure
+  const router = useRouter();
+  React.useEffect(() => {
+    router.replace('/systems/chaldean');
+  }, [router]);
+  return null;
 }
 
 export default ChaldeanPage;

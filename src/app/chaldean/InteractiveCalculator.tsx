@@ -23,8 +23,9 @@ export default function InteractiveCalculator() {
       <h2 className="text-xl font-bold mb-4 text-center">Interactive Numerology Calculator</h2>
       <div className="mb-4 flex flex-col md:flex-row gap-4">
         <div className="flex-1">
-          <label className="block font-semibold mb-1">Name</label>
+          <label htmlFor="ic-name" className="block font-semibold mb-1">Name</label>
           <input
+            id="ic-name"
             className="w-full border rounded px-2 py-1"
             value={name}
             onChange={e => setName(e.target.value)}
@@ -32,8 +33,9 @@ export default function InteractiveCalculator() {
           />
         </div>
         <div className="flex-1">
-          <label className="block font-semibold mb-1">Birthdate</label>
+          <label htmlFor="ic-birthdate" className="block font-semibold mb-1">Birthdate</label>
           <input
+            id="ic-birthdate"
             className="w-full border rounded px-2 py-1"
             type="date"
             value={birthdate}

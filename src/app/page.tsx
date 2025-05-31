@@ -1,28 +1,31 @@
+
+
+import React from 'react';
 import Link from 'next/link';
+import OnboardingForm from './components/OnboardingForm';
 
 export default function Home() {
   return (
     <div className="max-w-6xl mx-auto">
-      <h1 className="section-title bg-clip-text text-transparent bg-gradient-to-r from-purple-300 to-pink-300">Family Numerology</h1>
+      <h1 className="section-title bg-clip-text text-transparent bg-gradient-to-r from-purple-300 to-pink-300">FAMOLOGY</h1>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
         <div className="section-card">
-          <h2 className="text-2xl font-semibold mb-4">Welcome to Family Numerology</h2>
-          <p className="mb-4">
-            Explore the hidden patterns and connections within your family through the lens of numerology, 
-            Western and Eastern astrology, and gematria.
+          <h2 className="text-2xl font-semibold mb-4">WHAT EVEN IS FAMOLOGY???</h2>
+          <p className="mb-4" style={{whiteSpace: 'pre-line'}}>
+            “FAMOLOGY” is the study of how our immediate families come together to form one gigantic extended family. (INCOMING RANT) When enough people join, you’ll begin to see the “scientific” approach I took, as coincidences start to shift from random chances to repeated instances. When documented properly—like I’ve been doing—this has the potential power to break generational curses.
+
+I don’t claim to have all the answers. I just want to do my part, half as good as Aunt Va… (hard gulp, and a constant thought of how she always entertained my constant curiosity). Aunt Vicky knew so much, and NOW I can fulfill my part in giving people THAT KNOW a place to go. No house fire, flood, or robbery can take this away.
+
+So please, take some time out of your day to show your cousin in 2089 how we got down back in the day. Once you see that everything isn’t as black and white as it’s portrayed, and you start to study family relationships, quirks, and how generations evolve—this could be a playful and educational app, but truly, I REALLY made this to see how far we can trace our roots.
           </p>
-          <p className="mb-4">
-            This interactive tool allows you to analyze Life Path Numbers, zodiac signs, and their 
-            interconnections, providing insights into individual personalities and family dynamics.
-          </p>
-          <div className="mt-6">
-            <Link href="/family-tree" className="btn-primary">
-              Explore Family Tree
-            </Link>
-          </div>
         </div>
-        
+
+        <div className="section-card flex flex-col gap-4 items-center justify-center">
+          <h2 className="text-2xl font-semibold mb-4">Onboarding</h2>
+          <OnboardingForm />
+        </div>
+
         <div className="section-card">
           <h2 className="text-2xl font-semibold mb-4">Features</h2>
           <ul className="space-y-2">
