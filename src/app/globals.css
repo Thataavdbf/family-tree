@@ -34,18 +34,106 @@
 }
 
 
+
+/* Ensure all overlays, modals, popovers, and dialogs use a dark background */
+.bg-popover,
+.bg-background,
+[class*="bg-popover"],
+[class*="bg-background"],
+.radix-themes,
+.radix-themes[data-theme],
+.radix-themes-content,
+.dialog-content,
+.sheet-content,
+.popover-content,
+.dropdown-menu-content,
+.alert-dialog-content,
+.hover-card-content,
+.context-menu-content {
+  background-color: #181022 !important;
+  color: #fff !important;
+  box-shadow: 0 4px 32px 0 #000a !important;
+}
+
+/* Aggressive overlay/whiteout fix for any overlay/modal/popover */
+div[style*="background: white"],
+div[style*="background-color: white"],
+div[style*="background:rgba(255,255,255"],
+div[style*="background-color:rgba(255,255,255"],
+div[style*="background:#fff"],
+div[style*="background-color:#fff"],
+div[style*="background: #fff"],
+div[style*="background-color: #fff"],
+.DialogOverlay,
+.SheetOverlay,
+.PopoverOverlay,
+.DropdownMenuOverlay,
+.AlertDialogOverlay,
+.HoverCardOverlay,
+.ContextMenuOverlay,
+.radix-overlay,
+.radix-portal {
+  background: #181022 !important;
+  background-color: #181022 !important;
+  color: #fff !important;
+  opacity: 0.98 !important;
+  z-index: 9999 !important;
+}
+
+/* Extra overlay/portal/whiteout fix for Radix and generic overlays */
+.radix-overlay,
+.radix-portal,
+div[style*="background: white"],
+div[style*="background-color: white"],
+div[style*="background:rgba(255,255,255"],
+div[style*="background-color:rgba(255,255,255"],
+div[style*="background:#fff"],
+div[style*="background-color:#fff"],
+.DialogOverlay,
+.SheetOverlay,
+.PopoverOverlay,
+.DropdownMenuOverlay,
+.AlertDialogOverlay,
+.HoverCardOverlay,
+.ContextMenuOverlay {
+  background: #181022 !important;
+  background-color: #181022 !important;
+  color: #fff !important;
+  opacity: 0.98 !important;
+  z-index: 9999 !important;
+}
+
 body {
   color: #fff;
   background: #000 !important;
 }
 
 /* Big letters (headings) red, small letters white */
+/* FAQ/collapsible question headings yellow */
 h1, h2, h3, h4, h5, h6, .section-title {
   color: #ff2222 !important;
 }
 
-p, li, span, label, input, button, td, th, .text-sm, .text-xs, .text-md, .text-base, .text-white, .opacity-80, .opacity-70, .opacity-90 {
+.faq-question, .collapsible-trigger, .CollapsibleTrigger, [data-faq-question], [data-collapsible-trigger] {
+  color: #ffe066 !important;
+}
+
+p, li, span, label, button, td, th, .text-sm, .text-xs, .text-md, .text-base, .text-white, .opacity-80, .opacity-70, .opacity-90 {
   color: #fff !important;
+}
+
+input, textarea, select {
+  color: #fff !important;
+  background-color: #000 !important;
+}
+
+/* Autofill fix for Chrome/Edge */
+input:-webkit-autofill,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: #fff !important;
+  box-shadow: 0 0 0px 1000px #000 inset !important;
+  background-color: #000 !important;
 }
 
 /* Visited page highlight: bright purple for nav links */
@@ -74,12 +162,12 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .section-card {
-  background-color: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(8px);
+  background-color: #111 !important;
+  border: 2px solid #fff !important;
+  color: #fff !important;
   border-radius: 0.75rem;
   padding: 1.5rem;
   margin-bottom: 1.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .btn {
@@ -222,4 +310,24 @@ h1, h2, h3, h4, h5, h6 {
 
 .tab-button:hover:not(.active) {
   background-color: rgba(255, 255, 255, 0.08);
+}
+
+/* FAQ/collapsible content fix */
+[data-state="open"], .faq-answer, .collapsible-content, .CollapsibleContent {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+
+/* Also force parent containers of open collapsibles/FAQ to be transparent */
+[data-state="open"],
+[data-state="open"] *,
+.faq-answer *,
+.collapsible-content *,
+.CollapsibleContent * {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: #fff !important;
+  box-shadow: none !important;
 }

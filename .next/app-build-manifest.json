@@ -11,10 +11,10 @@
       "static/chunks/main-app.js",
       "static/chunks/app/page.js"
     ],
-    "/family-tree/page": [
+    "/overview/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/family-tree/page.js"
+      "static/chunks/app/overview/page.js"
     ],
     "/systems/page": [
       "static/chunks/webpack.js",

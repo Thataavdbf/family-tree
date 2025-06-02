@@ -7,9 +7,18 @@ import { useRouter } from 'next/navigation';
 export default function OnboardingForm() {
   const router = useRouter();
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    // Optionally, collect and store user info here
+    const form = e.currentTarget;
+    const name = (form.elements.namedItem('name') as HTMLInputElement).value;
+    const birthdate = (form.elements.namedItem('dob') as HTMLInputElement).value;
+    const birthplace = (form.elements.namedItem('birthplace') as HTMLInputElement).value;
+    const birthtime = (form.elements.namedItem('birthtime') as HTMLInputElement).value;
+    await fetch('/api/user-info', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, birthdate, birthplace, birthtime }),
+    });
     router.push('/profiles');
   }
 
